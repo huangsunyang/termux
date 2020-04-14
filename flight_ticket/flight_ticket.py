@@ -2,6 +2,7 @@
 import sys
 import requests
 import json
+import argparse
 
 headers = {
     "authority": "flights.ctrip.com:",
@@ -80,6 +81,12 @@ class JsonObject(object):
         return JsonObject(json.loads(text))
 
 
+class StdOutWapper(object):
+    def write(self, text):
+        # text = text.encode('utf-8') if isinstance(text, unicode) else text
+        return sys.stdout.write(text)
+
+
 class UnicodeWriter(object):
     """
     unicode wrapper for file writer
@@ -88,7 +95,7 @@ class UnicodeWriter(object):
     """
 
     def __init__(self, file_name):
-        self.file = open(file_name, 'w') if file_name else sys.stdout
+        self.file = open(file_name, 'w') if file_name else StdOutWapper()
 
     def write(self, *texts, **kwargs):
         sep = kwargs.get('sep', '')
@@ -107,7 +114,7 @@ class PayloadFromatter(object):
         pay_load['airportParams'] = [{
             "dcity": cls.city_tlc(depart_city) or 'HGH',
             "acity": cls.city_tlc(arrival_city) or 'CKG',
-            "date": cls.date_format(date) or '2010-4-20',
+            "date": cls.date_format(date) or '1979-01-01',
         }]
         return pay_load
 
@@ -160,4 +167,10 @@ class DataArchiever(object):
 
 
 if __name__ == '__main__':
-    DataArchiever('SHA', 'CSX', None).parse()
+    parser = argparse.ArgumentParser(description='flight ticket searcher')
+    parser.add_argument('-D', '--date', help='date time in format like 2019-01-31')
+    parser.add_argument('-d', '--departure', help='departure city, use tlc or city name')
+    parser.add_argument('-a', '--arrival', help='arrival city, use tlc or city name')
+    args = parser.parse_args()
+    print args.date, args.departure, args.arrival
+    DataArchiever(args.departure, args.arrival, args.date).parse()
