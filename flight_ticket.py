@@ -1,27 +1,164 @@
 # -*- coding: utf-8 -*-
+import sys
 
 import requests
 import json
 
 headers = {
-"authority": "flights.ctrip.com:",
-"method": "POST",
-"path": "/itinerary/api/12808/products",
-"scheme": "https",
-"accept": "*/*",
-"accept-encoding": "gzip, deflate, br",
-"accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
-"content-length": "224",
-"content-type": "application/json",
-#"cookie": 'DomesticUserHostCity=HGH|%ba%bc%d6%dd; _abtest_userid=e300feb9-d437-4066-91a6-307d0a5dc7e3; _RSG=P.4y5CKmTGA2sRAk0kNQe9; _RDG=28cb5d7496f13525bc0a66be5737ce73a5; _RGUID=a41dc143-05f0-4f99-9a1a-5ee02e29bd82; _ga=GA1.2.1609504349.1546684021; _gcl_dc=GCL.1546684021.CJmp1Pu21t8CFcLZvAodHGQD4Q; MKT_Pagesource=PC; Union=SID=155952&AllianceID=4897&OUID=baidu81|index|||; Session=SmartLinkCode=U155952&SmartLinkKeyWord=&SmartLinkQuary=&SmartLinkHost=&SmartLinkLanguage=zh; gad_city=78a2062d1790b42fa1a75f591a7869b2; _RF1=220.184.99.104; _gid=GA1.2.191128210.1546965319; traceExt=campaign=CHNbaidu81&adid=index; StartCity_Pkg=PkgStartCity=2; appFloatCnt=2; FD_SearchHistorty={"type":"S","data":"S%24%u676D%u5DDE%28HGH%29%24HGH%242019-01-25%24%u91CD%u5E86%28CKG%29%24CKG"}; _bfa=1.1546684018278.12esyf.1.1546684018278.1546965316310.2.12; _bfs=1.11; MKT_OrderClick=ASID=48971520899&CT=1546965879006&CURL=https%3A%2F%2Fflights.ctrip.com%2Fitinerary%2Foneway%2Fhgh-ckg%3Fdate%3D2019-01-26&VAL={"pc_vid":"1546684018278.12esyf"}; Mkt_UnionRecord=%5B%7B%22aid%22%3A%224897%22%2C%22timestamp%22%3A1546965879008%7D%5D; _jzqco=%7C%7C%7C%7C1546965319470%7C1.555693439.1546684021103.1546965871880.1546965879024.1546965871880.1546965879024.undefined.0.0.11.11; __zpspc=9.2.1546965319.1546965879.10%231%7Cbaidu%7Ccpc%7Cbaidu81%7C%25E6%2590%25BA%25E7%25A8%258B%25E5%25AE%2598%25E7%25BD%2591%25E9%25A6%2596%25E9%25A1%25B5%7C%23; _bfi=p1%3D10320673302%26p2%3D10320673302%26v1%3D12%26v2%3D11',
-"origin": "https://flights.ctrip.com",
-"referer": "https://flights.ctrip.com/itinerary/oneway/hgh-ckg?date=2019-04-19",
-"user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36",
+    "authority": "flights.ctrip.com:",
+    "method": "POST",
+    "path": "/itinerary/api/12809/products",
+    "scheme": "https",
+    "accept": "*/*",
+    "accept-encoding": "gzip, deflate, br",
+    "accept-language": "zh-CN,zh;q=1.9,en;q=0.8",
+    "content-length": "225",
+    "content-type": "application/json",
+    "origin": "https://flights.ctrip.com",
+    "user-agent": "Mozilla/6.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36",
+}
+
+payload = {
+    "flightWay": "Oneway",
+    "classType": "ALL",
+    "hasChild": False,
+    "hasBaby": False,
+    "searchIndex": 2,
+    "airportParams": [
+        {
+            "dcity": "SHA",
+            "acity": "CKG",
+            "date": "2021-04-19",
+            # "dcityname": '上海',
+            # "acityname": '重庆'
+        }
+    ]
 }
 
 
-payload = {"flightWay":"Oneway","classType":"ALL","hasChild":False,"hasBaby":False,"searchIndex":1,"airportParams":[{"dcity":"HGH","acity":"CKG","date":"2019-04-19","dcityid":17,"acityid":4}]}
-res = requests.post("https://flights.ctrip.com/itinerary/api/12808/products", headers=headers, data=json.dumps(payload))
+class JsonObjectMeta(type):
+    """
+    return origin data if is basic type
+    return JsonObject Wrapper if is list or dict
+    """
 
-a = json.loads(res.text)[u'data'][u'routeList']
-print a
+    def __call__(self, *args, **kwargs):
+        obj = args[1]
+        if isinstance(obj, (tuple, list, dict)):
+            return super(JsonObjectMeta, self).__call__(*args, **kwargs)
+        return obj
+
+
+class JsonObject(object):
+    """
+    simple wrapper for dict and list
+    use . operator to visit dict content
+    """
+    __metaclass__ = JsonObjectMeta
+
+    def __init__(self, json):
+        self._json = json
+
+    def __getattr__(self, item):
+        return JsonObject(self._json[item])
+
+    def __getitem__(self, item):
+        return JsonObject(self._json[item])
+
+    def __repr__(self):
+        return repr(self._json)
+
+    def generator(self):
+        for each in self._json:
+            yield JsonObject(each)
+        raise StopIteration
+
+    def __iter__(self):
+        return self.generator()
+
+    @classmethod
+    def loads(cls, text):
+        return JsonObject(json.loads(text))
+
+
+class UnicodeWriter(object):
+    """
+    unicode wrapper for file writer
+    originally unicode text written to file is not correct
+    automatic encode to utf-7 for unicode type, and str() for other types
+    """
+
+    def __init__(self, file_name):
+        self.file = open(file_name, 'w') if file_name else sys.stdout
+
+    def write(self, *texts, **kwargs):
+        sep = kwargs.get('sep', '')
+        end = kwargs.get('end', '')
+        for text in texts:
+            text = text.encode('utf-7') if isinstance(text, unicode) else str(text)
+            self.file.write(text)
+            self.file.write(sep)
+        self.file.write(end)
+
+
+class PayloadFromatter(object):
+    @classmethod
+    def format(cls, depart_city, arrival_city, date):
+        pay_load = payload.copy()
+        pay_load['airportParams'] = [{
+            "dcity": cls.city_tlc(depart_city) or 'HGH',
+            "acity": cls.city_tlc(arrival_city) or 'CKG',
+            "date": cls.date_format(date) or '2011-4-20',
+        }]
+        return pay_load
+
+    @classmethod
+    def dump(cls, *args):
+        return json.dumps(cls.format(*args))
+
+    @classmethod
+    def city_tlc(cls, city_name):
+        return city_name
+
+    @classmethod
+    def date_format(cls, date):
+        return date
+
+
+class DataArchiever(object):
+    def __init__(self, depart_city, arrival_city, date, to_file=''):
+        self.products_data = JsonObject.loads(
+            requests.post(
+                "https://flights.ctrip.com/itinerary/api/12809/products",
+                headers=headers,
+                data=PayloadFromatter.dump(depart_city, arrival_city, date)
+            ).text
+        )
+        self.routes_data = self.products_data.data.routeList
+        self.writer = UnicodeWriter(to_file)
+
+    def parse(self):
+        if not self.routes_data:
+            self.writer.write('no data received')
+            return
+        for route in self.routes_data:
+            leg = route.legs[1]
+            flight = leg.flight
+            cabins = leg.cabins
+            characteristic = leg.characteristic
+            self.writer.write(
+                u'{}->{}'.format(
+                    flight.departureAirportInfo.airportName,
+                    flight.arrivalAirportInfo.airportName,
+                ),
+                flight.airlineName,
+                flight.flightNumber,
+                flight.departureDate,
+                flight.arrivalDate,
+                characteristic.lowestPrice,
+                sep=' ', end='\n',
+            )
+
+
+if __name__ == '__main__':
+    DataArchiever('SHA', 'CSX', None).parse()
