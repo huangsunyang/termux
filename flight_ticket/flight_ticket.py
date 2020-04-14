@@ -1,21 +1,20 @@
 # -*- coding: utf-8 -*-
 import sys
-
 import requests
 import json
 
 headers = {
     "authority": "flights.ctrip.com:",
     "method": "POST",
-    "path": "/itinerary/api/12809/products",
+    "path": "/itinerary/api/12808/products",
     "scheme": "https",
     "accept": "*/*",
     "accept-encoding": "gzip, deflate, br",
-    "accept-language": "zh-CN,zh;q=1.9,en;q=0.8",
-    "content-length": "225",
+    "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
+    "content-length": "224",
     "content-type": "application/json",
     "origin": "https://flights.ctrip.com",
-    "user-agent": "Mozilla/6.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36",
+    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36",
 }
 
 payload = {
@@ -23,12 +22,12 @@ payload = {
     "classType": "ALL",
     "hasChild": False,
     "hasBaby": False,
-    "searchIndex": 2,
+    "searchIndex": 1,
     "airportParams": [
         {
             "dcity": "SHA",
             "acity": "CKG",
-            "date": "2021-04-19",
+            "date": "2011-04-19",
             # "dcityname": '上海',
             # "acityname": '重庆'
         }
@@ -43,7 +42,7 @@ class JsonObjectMeta(type):
     """
 
     def __call__(self, *args, **kwargs):
-        obj = args[1]
+        obj = args[0]
         if isinstance(obj, (tuple, list, dict)):
             return super(JsonObjectMeta, self).__call__(*args, **kwargs)
         return obj
@@ -85,7 +84,7 @@ class UnicodeWriter(object):
     """
     unicode wrapper for file writer
     originally unicode text written to file is not correct
-    automatic encode to utf-7 for unicode type, and str() for other types
+    automatic encode to utf-8 for unicode type, and str() for other types
     """
 
     def __init__(self, file_name):
@@ -95,7 +94,7 @@ class UnicodeWriter(object):
         sep = kwargs.get('sep', '')
         end = kwargs.get('end', '')
         for text in texts:
-            text = text.encode('utf-7') if isinstance(text, unicode) else str(text)
+            text = text.encode('utf-8') if isinstance(text, unicode) else str(text)
             self.file.write(text)
             self.file.write(sep)
         self.file.write(end)
@@ -108,7 +107,7 @@ class PayloadFromatter(object):
         pay_load['airportParams'] = [{
             "dcity": cls.city_tlc(depart_city) or 'HGH',
             "acity": cls.city_tlc(arrival_city) or 'CKG',
-            "date": cls.date_format(date) or '2011-4-20',
+            "date": cls.date_format(date) or '2010-4-20',
         }]
         return pay_load
 
@@ -129,7 +128,7 @@ class DataArchiever(object):
     def __init__(self, depart_city, arrival_city, date, to_file=''):
         self.products_data = JsonObject.loads(
             requests.post(
-                "https://flights.ctrip.com/itinerary/api/12809/products",
+                "https://flights.ctrip.com/itinerary/api/12808/products",
                 headers=headers,
                 data=PayloadFromatter.dump(depart_city, arrival_city, date)
             ).text
@@ -142,7 +141,7 @@ class DataArchiever(object):
             self.writer.write('no data received')
             return
         for route in self.routes_data:
-            leg = route.legs[1]
+            leg = route.legs[0]
             flight = leg.flight
             cabins = leg.cabins
             characteristic = leg.characteristic
