@@ -149,6 +149,8 @@ class DataArchiever(object):
             return
         for route in self.routes_data:
             leg = route.legs[0]
+            if leg.legType != 'Flight':
+                continue
             flight = leg.flight
             cabins = leg.cabins
             characteristic = leg.characteristic
@@ -172,5 +174,5 @@ if __name__ == '__main__':
     parser.add_argument('-d', '--departure', help='departure city, use tlc or city name')
     parser.add_argument('-a', '--arrival', help='arrival city, use tlc or city name')
     args = parser.parse_args()
-    print args.date, args.departure, args.arrival
+    print 'data={}, departure={}, arrival={}'.format(args.date, args.departure, args.arrival)
     DataArchiever(args.departure, args.arrival, args.date).parse()
